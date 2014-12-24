@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <!--Библиотека графического оформления bootstrap, содержит стили-->
+    <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+    <!--Собственные (наши) стили-->
+    <link href="style.css" rel="stylesheet">
+    <!--Библиотека, которая позовляет управлять элементами страницы из js, jquery-->
+    <script src="jquery-2.1.1.js"></script>
+    <!--Библиотека для рисования на "канвасе"(холсте)-->
+    <script src="fabric.min.js"></script>
+    <!--Какая то хрень из бутстрапа-->
+    <script src="bootstrap/js/bootstrap.min.js"></script>
+</head>
+<body>
+<div class="container">
+    <div class="panel panel-default" id="canvas-panel">
+        <div class="panel-heading">Волновой алгоритм</div>
+        <div class="panel-body" id="canvas-panel-body">
+            <div id="canvas-div">
+                <!--Это холст, на котором все рисуется-->
+                <canvas style="width: 100%; height: 100%; left: 0; top: 0; -moz-user-select: none;" class="lower-canvas" id="c" width="200" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <center>
+                <div class="btn-group" role="group" aria-label="...">
+                    <button type="button" class="btn btn-default" id="set_mode_start">Выставить начало</button>
+                    <button type="button" class="btn btn-default" id="set_mode_end">Выставить конец</button>
+                    <button type="button" class="btn btn-default" id="set_mode_border">Выставить ограничения</button>
+                    <button type="button" class="btn btn-success" id="show_process_button">Показать вычисления</button>
+                    <button type="button" class="btn btn-danger">Показать решение</button>
+                </div>
+            </center>
+        </div>
+    </div>
+</div>
+
+<!--Наш исходный код, в самом конце-->
+<script src="source.js"></script>
+</body>
+</html>
