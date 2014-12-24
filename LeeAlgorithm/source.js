@@ -157,6 +157,13 @@ $(document).ready(function(){
     $( "#show_process_button" ).click(function() {
         clear_work_results();
         count_distances();
+        make_route(true);
+    });
+
+    $( "#show_result_button" ).click(function() {
+        clear_work_results();
+        count_distances();
+        make_route(false);
     });
 
     $( "#set_mode_start" ).click(function() {
@@ -249,8 +256,6 @@ $(document).ready(function(){
                 }
             }
         }
-        make_grid();
-        make_route(true);
     };
 
     var make_route = function(animated){
