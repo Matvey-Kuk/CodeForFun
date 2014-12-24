@@ -62,7 +62,7 @@ $(document).ready(function(){
                     color = 'purple';
                 }
 
-                if(x_y_block_types_array[i][j]['type'] == 'way'){
+                if(x_y_block_types_array[i][j]['type'] == 'route'){
                     color = 'blue';
                 }
 
@@ -83,14 +83,25 @@ $(document).ready(function(){
 
     make_grid();
 
-    //Определяем на какую клетку нажал пользователь по координатам мыши
-    var mouseClickListener = function(event) {
+    var clear_work_results = function(){
+        for(i = 0 ; i < x_y_block_types_array.length ; i++){
+            for(j = 0 ; j < x_y_block_types_array[0].length ; j++) {
+                x_y_block_types_array[i][j]['distance'] = '';
+            }
+        }
 
         for(i = 0 ; i < x_y_block_types_array.length ; i++){
-                for(j = 0 ; j < x_y_block_types_array[0].length ; j++) {
-                        x_y_block_types_array[i][j]['distance'] = '';
+            for(j = 0 ; j < x_y_block_types_array[0].length ; j++) {
+                if(x_y_block_types_array[i][j]['type'] == 'route'){
+                    x_y_block_types_array[i][j]['type'] = 'field';
                 }
             }
+        }
+    };
+
+    //Определяем на какую клетку нажал пользователь по координатам мыши
+    var mouseClickListener = function(event) {
+        clear_work_results();
 
         var posX = event.clientX - canvas.offsetLeft;
         var posY = event.clientY - canvas.offsetTop;
@@ -144,67 +155,127 @@ $(document).ready(function(){
     };
 
     $( "#show_process_button" ).click(function() {
+        clear_work_results();
         count_distances();
     });
 
     $( "#set_mode_start" ).click(function() {
+        clear_work_results();
         edit_mode = 'start';
     });
 
     $( "#set_mode_end" ).click(function() {
+        clear_work_results();
         edit_mode = 'end';
     });
 
     $( "#set_mode_border" ).click(function() {
+        clear_work_results();
         edit_mode = 'border';
     });
 
     var count_distances = function(){
         var shift = [-1, 0, 1];
         var a, b;
-        var counted_one_item = false;
-        var some_filed_distance_changed = true;
-        for(i = 0 ; i < x_y_block_types_array.length ; i++){
-            for(j = 0 ; j < x_y_block_types_array[0].length && !counted_one_item ; j++) {
-                if(x_y_block_types_array[i][j]['type'] == 'field'){
-                    var min_distance = x_y_block_types_array[i][j]['distance'];
-                    for(a = 0 ; a < shift.length ; a++){
-                        for(b = 0 ; b < shift.length; b++){
-                            if((i + shift[a] >= 0) &&  (j + shift[b] >= 0) && (i + shift[a] < quontity_of_blocks_x) && (j + shift[b] < quontity_of_blocks_y) && !((shift[a] == 0) && (shift[b] == 0))){
-                                if(min_distance == ""){
-                                    if(x_y_block_types_array[i + shift[a]][j + shift[b]]['distance'] != ''){
-                                        min_distance = x_y_block_types_array[i + shift[a]][j + shift[b]]['distance'] + 1;
-                                    }
-                                } else {
-                                    if(x_y_block_types_array[i + shift[a]][j + shift[b]]['distance'] != "") {
-                                        if (x_y_block_types_array[i + shift[a]][j + shift[b]]['distance'] + 1 < min_distance) {
-                                            var apply = 1;
-                                            if(shift[a] * shift[b] != 0){
-                                                apply = 1.4;
+        var counted_one_item = true;
+        while (counted_one_item) {
+            counted_one_item = false;
+            for (i = 0; i < x_y_block_types_array.length; i++) {
+                for (j = 0; j < x_y_block_types_array[0].length; j++) {
+                    if (x_y_block_types_array[i][j]['type'] == 'field') {
+                        var min_distance = x_y_block_types_array[i][j]['distance'];
+                        for (a = 0; a < shift.length; a++) {
+                            for (b = 0; b < shift.length; b++) {
+                                if ((i + shift[a] >= 0) && (j + shift[b] >= 0) && (i + shift[a] < quontity_of_blocks_x) && (j + shift[b] < quontity_of_blocks_y) && !((shift[a] == 0) && (shift[b] == 0)) && (shift[a] * shift[b] == 0)) {
+                                    if (min_distance == "") {
+                                        if (x_y_block_types_array[i + shift[a]][j + shift[b]]['distance'] != '') {
+                                            min_distance = x_y_block_types_array[i + shift[a]][j + shift[b]]['distance'] + 1;
+                                        }
+                                    } else {
+                                        if (x_y_block_types_array[i + shift[a]][j + shift[b]]['distance'] != "") {
+                                            if (x_y_block_types_array[i + shift[a]][j + shift[b]]['distance'] + 1 < min_distance) {
+                                                var apply = 1;
+                                                if (shift[a] * shift[b] != 0) {
+                                                    apply = 1.4;
+                                                }
+                                                min_distance = x_y_block_types_array[i + shift[a]][j + shift[b]]['distance'] + apply;
                                             }
-                                            min_distance = x_y_block_types_array[i + shift[a]][j + shift[b]]['distance'] + apply;
                                         }
                                     }
-                                }
-                                if(x_y_block_types_array[i + shift[a]][j + shift[b]]['type'] == 'start'){
-                                    var apply = 1;
-                                    if(shift[a] * shift[b] != 0){
-                                        apply = 1.4;
+                                    if (x_y_block_types_array[i + shift[a]][j + shift[b]]['type'] == 'start') {
+                                        var apply = 1;
+                                        if (shift[a] * shift[b] != 0) {
+                                            apply = 1.4;
+                                        }
+                                        min_distance = apply;
                                     }
-                                    min_distance = apply;
                                 }
                             }
                         }
-                    }
-                    if((x_y_block_types_array[i][j]['distance'] == '') || min_distance < x_y_block_types_array[i][j]['distance']){
-                        x_y_block_types_array[i][j]['distance'] = min_distance;
-                        if(min_distance != ''){
-                            counted_one_item = true;
+                        if ((x_y_block_types_array[i][j]['distance'] == '') || min_distance < x_y_block_types_array[i][j]['distance']) {
+                            x_y_block_types_array[i][j]['distance'] = min_distance;
+                            if (min_distance != '') {
+                                counted_one_item = true;
+                            }
                         }
                     }
                 }
             }
         }
+        make_grid();
+        make_route(true);
+    };
+
+    var make_route = function(animated){
+
+        var shift = [-1, 0, 1];
+
+        var end_point = {x: NaN, y: NaN};
+        for (i = 0; i < x_y_block_types_array.length; i++) {
+            for (j = 0; j < x_y_block_types_array[0].length; j++) {
+                if(x_y_block_types_array[i][j]['type'] == 'end'){
+                    end_point['x'] = i;
+                    end_point['y'] = j;
+                    console.log(end_point);
+                }
+            }
+        }
+
+        var finish_has_been_founded = false;
+        var constraint = 50;
+        var i = end_point['x'];
+        var j = end_point['y'];
+        while (!finish_has_been_founded) {
+            var minimal_distance = NaN;
+            var min_dist_i = NaN;
+            var min_dist_j = NaN;
+
+            for (var a = 0; a < shift.length; a++) {
+                for (var b = 0; b < shift.length; b++) {
+                    if ((i + shift[a] >= 0) && (j + shift[b] >= 0) && (i + shift[a] < quontity_of_blocks_x) && (j + shift[b] < quontity_of_blocks_y) && !((shift[a] == 0) && (shift[b] == 0)) && (shift[a] * shift[b] == 0)) {
+                        if (x_y_block_types_array[i + shift[a]][j + shift[b]]['type'] == 'field' && (x_y_block_types_array[i + shift[a]][j + shift[b]]['distance'] != '')) {
+                            var current_point_distance = x_y_block_types_array[i + shift[a]][j + shift[b]]['distance'];
+                            if(isNaN(minimal_distance) || minimal_distance > current_point_distance){
+                                minimal_distance = current_point_distance;
+                                min_dist_i = i + shift[a];
+                                min_dist_j = j + shift[b];
+                            }
+                        }
+                        if(x_y_block_types_array[i + shift[a]][j + shift[b]]['type'] == 'start'){
+                            finish_has_been_founded = true;
+                        }
+                    }
+                }
+            }
+
+            if(!finish_has_been_founded && !isNaN(minimal_distance)){
+                x_y_block_types_array[min_dist_i][min_dist_j]['type'] = 'route';
+                i = min_dist_i;
+                j = min_dist_j;
+                console.log(i,j);
+            }
+        }
+
         make_grid();
     };
 
