@@ -348,7 +348,7 @@ $(document).ready(function(){
         };
 
         find_next_route_point();
-        searchTimeResults.html(Date.now() - start_time);
+        searchTimeResults.html(Date.now() - start_time + " миллисекунд(ы)");
     };
 
     //Слушаю все нажатия мыши на холсте и вызываю функцию обработчик
