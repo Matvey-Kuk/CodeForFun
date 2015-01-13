@@ -22,20 +22,26 @@ $(document).ready(function(){
     var quontity_of_blocks_x = 20;
     var quontity_of_blocks_y = 20;
 
-    //Массив свойств клетки 2-движущийся объект 1-стена 0-путь свободен
-    var x_y_block_types_array=new Array(quontity_of_blocks_x);
-    for (i=0; i<quontity_of_blocks_x; i++) {
-        x_y_block_types_array[i] = new Array(quontity_of_blocks_y);
-    }
+    var x_y_block_types_array = NaN;
 
-    for(i = 0 ; i < x_y_block_types_array.length ; i++){
-        for(j = 0 ; j < x_y_block_types_array[0].length ; j++) {
-            x_y_block_types_array[i][j] = {
-                type: 'field',
-                distance: ''
-            };
+    var make_internal_data = function(){
+        //Массив свойств клетки 2-движущийся объект 1-стена 0-путь свободен
+        x_y_block_types_array=new Array(quontity_of_blocks_x);
+        for (i=0; i<quontity_of_blocks_x; i++) {
+            x_y_block_types_array[i] = new Array(parseInt(quontity_of_blocks_y, 10));
         }
-    }
+
+        for(i = 0 ; i < x_y_block_types_array.length ; i++){
+            for(j = 0 ; j < x_y_block_types_array[0].length ; j++) {
+                x_y_block_types_array[i][j] = {
+                    type: 'field',
+                    distance: ''
+                };
+            }
+        }
+    };
+
+    make_internal_data();
 
     //Рисует сетку
     var make_grid = function(){
@@ -208,6 +214,19 @@ $(document).ready(function(){
         dump_area.html(dump_string);
     });
 
+    var inputXSize = $("#inputXSize");
+    var inputYSize = $("#inputYSize");
+
+    $( "#resizeButton" ).click(function() {
+        clear_work_results();
+        quontity_of_blocks_x = parseFloat(inputXSize.val());
+        quontity_of_blocks_y = parseFloat(inputYSize.val());
+
+        resize_canvas();
+        make_internal_data();
+        make_grid();
+    });
+
     var count_distances = function(){
         var shift = [-1, 0, 1];
         var a, b;
@@ -258,7 +277,11 @@ $(document).ready(function(){
         }
     };
 
+    var searchTimeResults = $("#searchTimeResults");
+
     var make_route = function(animated){
+
+        var start_time = Date.now();
 
         var shift = [-1, 0, 1];
 
@@ -325,6 +348,7 @@ $(document).ready(function(){
         };
 
         find_next_route_point();
+        searchTimeResults.html(Date.now() - start_time);
     };
 
     //Слушаю все нажатия мыши на холсте и вызываю функцию обработчик

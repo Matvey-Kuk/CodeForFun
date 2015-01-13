@@ -39,18 +39,45 @@
             </center>
         </div>
     </div>
-    <div class="panel panel-default">
-        <div class="panel-body">
-            <center>
-                <textarea class="form-control" rows="3" id="dump_area"></textarea>
-                <div class="btn-group" role="group" aria-label="...">
-                    <br>
-                    <button type="button" class="btn btn-default" id="export_map">Экспортировать карту</button>
-                    <button type="button" class="btn btn-default" id="import_map">Импортировать карту</button>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <div class="form-group">
+                        <label class="sr-only" for="exampleInputAmount">Amount (in dollars)</label>
+                        <div class="input-group">
+                            <div class="input-group-addon">X:</div>
+                            <input type="text" class="form-control" id="inputXSize" placeholder="Количество ячеек">
+                            <div class="input-group-addon">Y:</div>
+                            <input type="text" class="form-control" id="inputYSize" placeholder="Количество ячеек">
+                        </div>
+                    </div>
+                    <button type="submit" id="resizeButton" class="btn btn-primary">Изменить размер поля</button>
                 </div>
-            </center>
+            </div>
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    Время выполнения последнего поиска:
+                    <b id="searchTimeResults">Не определено</b>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <textarea class="form-control" rows="3" id="dump_area"></textarea>
+                    <div class="btn-group" role="group" aria-label="...">
+                        <br>
+                        <button type="button" class="btn btn-default" id="export_map">Экспортировать карту</button>
+                        <button type="button" class="btn btn-default" id="import_map">Импортировать карту</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+
+
+
 </div>
 
 <!--Наш исходный код, в самом конце-->
