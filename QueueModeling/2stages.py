@@ -67,36 +67,9 @@ global_environment.add_inner_environment(station_1)
 global_environment.add_inner_environment(station_2)
 global_environment.add_inner_environment(exit_station)
 
-days = 10
+days = 1
 for i in range(0, 480 * days):
     global_environment.clock()
     print(global_environment)
 
 print(global_environment.statistics())
-
-"""
-STATION1 STORAGE 3
-STATION2 STORAGE 1
-
-GENERATE (Exponential(1,0,120))
-
-QUEUE QST1
-ENTER STATION1
-DEPART QST1
-ADVANCE (Exponential(2,0,240))
-;
-
-;
-TEST L Q$QST2,1
-LEAVE STATION1
-
-QUEUE QST2
-ENTER STATION2
-DEPART QST2
-ADVANCE (Exponential(3,0,110))
-LEAVE STATION2
-TERMINATE
-
-GENERATE 480
-TERMINATE 1
-"""

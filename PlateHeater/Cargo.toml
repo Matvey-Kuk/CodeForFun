@@ -1,0 +1,13 @@
+[package]
+name = "mkr"
+version = "0.1.0"
+authors = ["Matvey-Kuk <motakuk@gmail.com>"]
+
+[dependencies]
+rustc-serialize = "0.3.14"
+iron = "*"
+rand = "0.3"
+time = "*"
+
+[dependencies.gnuplot]
+git = "https://github.com/SiegeLord/RustGnuplot.git"
