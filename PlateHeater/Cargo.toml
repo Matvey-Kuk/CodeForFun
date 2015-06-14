@@ -5,9 +5,9 @@ authors = ["Matvey-Kuk <motakuk@gmail.com>"]
 
 [dependencies]
 rustc-serialize = "0.3.14"
-iron = "*"
 rand = "0.3"
 time = "*"
+scirust = "*"
 
 [dependencies.gnuplot]
 git = "https://github.com/SiegeLord/RustGnuplot.git"
