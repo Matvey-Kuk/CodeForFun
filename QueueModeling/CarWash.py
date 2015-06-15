@@ -1,5 +1,5 @@
 import random
-
+import math
 from framework import *
 
 
@@ -11,20 +11,25 @@ class GeneratorStation(Station, OutputForStation):
         self.__probability_of_generation_for_polish = probability_of_generation_for_polish
         self.__rejected_queue = Queue()
         self.__generated_counter = 0
+        self.clock()
 
     def clock(self):
-        if random.random() <= self.__probability_of_generation_for_wash:
-            if len(self._transacts_ready_for_output) > 0:
-                self.__rejected_queue.push_transact(Car('Want wash'))
-            else:
-                self.__generated_counter += 1
-                self._transacts_ready_for_output.append(Car('Want wash'))
-        if random.random() <= self.__probability_of_generation_for_polish:
-            if len(self._transacts_ready_for_output) > 0:
-                self.__rejected_queue.push_transact(Car('Want polish'))
-            else:
-                self.__generated_counter += 1
-                self._transacts_ready_for_output.append(Car('Want polish'))
+        current_time_wash = 0
+        while current_time_wash < EventHorizon.time_limit:
+            current_time_wash += random.expovariate(1/self.__probability_of_generation_for_wash)
+            EventHorizon.register_callback_in_time(current_time_wash, self.throw_away_callback, Car('Want wash'))
+
+        current_time_polish = 0
+        while current_time_polish < EventHorizon.time_limit:
+            current_time_polish += random.expovariate(1/self.__probability_of_generation_for_polish)
+            EventHorizon.register_callback_in_time(current_time_polish, self.throw_away_callback, Car('Want polish'))
+
+    def throw_away_callback(self, time, data):
+        if len(self._transacts_ready_for_output) > 0:
+            self.__rejected_queue.push_transact(data)
+        else:
+            self.__generated_counter += 1
+            self._transacts_ready_for_output.append(data)
 
     def __repr__(self):
         return Station.__repr__(self) + " Транзакты, не попавшие далее: " + repr(self.__rejected_queue)
@@ -38,7 +43,8 @@ class WashStation(Station, InputOutputForStation):
     def __init__(self, name):
         Station.__init__(self, name)
         InputOutputForStation.__init__(self)
-        self.__queue = DelayedQueue(1, 4)
+        self.__queue = DelayedQueue(1, 4, "wash queue")
+        self.clock()
 
     def push_transact(self, transact):
         self.__queue.push_transact(transact)
@@ -71,7 +77,8 @@ class PolishStation(Station, InputOutputForStation):
     def __init__(self, name):
         Station.__init__(self, name)
         InputOutputForStation.__init__(self)
-        self.__queue = DelayedQueue(2, 15)
+        self.__queue = DelayedQueue(2, 15, "polish queue")
+        self.clock()
 
     def push_transact(self, transact):
         self.__queue.push_transact(transact)
@@ -113,12 +120,20 @@ class GarageStation(Station, InputOutputForStation, EnvironmentWithRouter):
         self.add_inner_environment(wash_station)
         self.add_inner_environment(polish_station)
 
+        self.clock()
+        Environment.clock(self)
+
     def __repr__(self):
         return Station.__repr__(self) + " очередь: " + repr(self.__queue) \
             + " вложенные станции: " + repr(self._inner_environments)
 
     def clock(self):
-        EnvironmentWithRouter.clock(self)
+        current_time = 0
+        while current_time < EventHorizon.time_limit:
+            current_time += 1
+            EventHorizon.register_callback_in_time(current_time, self.clock_callback, None)
+
+    def clock_callback(self, time, data):
         stations_ready_to_get_transact = True
         while self.__queue.ready_to_transacts_get() and stations_ready_to_get_transact:
             stations_ready_to_get_transact = False
@@ -128,6 +143,7 @@ class GarageStation(Station, InputOutputForStation, EnvironmentWithRouter):
                         if inner_environment.ready_to_transacts_push():
                             stations_ready_to_get_transact = True
                             inner_environment.push_transact(self.__queue.get_transact())
+        self.transport_transacts()
 
     def get_amount_of_transacts(self):
         return EnvironmentWithRouter.get_amount_of_transacts(self) + self.__queue.get_amount_of_transacts()
@@ -146,9 +162,9 @@ class GarageStation(Station, InputOutputForStation, EnvironmentWithRouter):
         return transact
 
 
-global_environment = Environment()
+global_environment = Environment("global env")
 
-generator_station = GeneratorStation("Генератор машин", 1/5, 1/30)
+generator_station = GeneratorStation("Генератор машин", 5, 30)
 
 garage_router_settings = {
     'Want wash': WashStation,
@@ -161,12 +177,27 @@ global_environment.add_inner_environment(generator_station)
 global_environment.add_inner_environment(garage_station)
 global_environment.add_inner_environment(exit_station)
 
-
-for i in range(0, 480):
-    global_environment.clock()
+def paint_statistics(time, data):
     print(global_environment)
+    print(global_environment.statistics())
 
-print(global_environment.statistics())
+EventHorizon.register_callback_in_time(480, paint_statistics, None)
+EventHorizon.execute_callbacks()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 """
 GARAGE STORAGE 2

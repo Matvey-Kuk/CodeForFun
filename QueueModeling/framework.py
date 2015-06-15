@@ -5,6 +5,35 @@ class TransactCannotBePassedException(Exception):
     pass
 
 
+class EventHorizon(object):
+    current_time = 0
+    time_limit = 480
+    requested_time_callbacks = {}
+
+    @staticmethod
+    def register_callback_in_time(time, callback, data):
+        if not time in EventHorizon.requested_time_callbacks:
+            EventHorizon.requested_time_callbacks[time] = []
+
+        EventHorizon.requested_time_callbacks[time].append(
+            {
+                "callback": callback,
+                "data": data
+            }
+        )
+
+    # @staticmethod
+    # def time_limit_achieved():
+    #     return EventHorizon.current_time < EventHorizon.time_limit
+
+    @staticmethod
+    def execute_callbacks():
+        sorted_times = sorted(EventHorizon.requested_time_callbacks)
+        for time in sorted_times:
+            for callback_element in EventHorizon.requested_time_callbacks[time]:
+                callback_element['callback'](time, callback_element['data'])
+
+
 class Car:
     counter = 0
 
@@ -75,10 +104,11 @@ class QueueWithCapacity(Queue):
 
 
 class DelayedQueue(QueueWithCapacity):
-    def __init__(self, capacity, delay):
+    def __init__(self, capacity, delay, name="no name"):
         super(DelayedQueue, self).__init__(capacity)
         self.__blocked_transacts = []
         self.__delay = delay
+        self.__name = name
 
     def push_transact(self, transact):
         self.__blocked_transacts.append({
@@ -95,17 +125,27 @@ class DelayedQueue(QueueWithCapacity):
         return self.get_amount_of_transacts() < self._capacity
 
     def clock(self):
-        Queue.clock(self)
-        self._transacts_len_counter += len(self.__blocked_transacts)
+        current_time = 0
+        while current_time < EventHorizon.time_limit:
+            current_time += random.expovariate(1/self.__delay)
+            EventHorizon.register_callback_in_time(current_time, self.clock_callback, None)
 
+    def clock_callback(self, time, data):
         new_blocked_transacts = []
+
+        one_passed = False
+
         for transact_with_tick_counter in self.__blocked_transacts:
             transact_with_tick_counter["ticks_spent"] += 1
-            if transact_with_tick_counter["ticks_spent"] >= self.__delay:
+            if not one_passed:
+                one_passed = True
                 super(DelayedQueue, self).push_transact(transact_with_tick_counter["transact"])
             else:
                 new_blocked_transacts.append(transact_with_tick_counter)
         self.__blocked_transacts = new_blocked_transacts
+        self._transacts_len_counter += len(self.__blocked_transacts)
+
+        Queue.clock(self)
 
     def __repr__(self):
         return "In process: " + repr(self.__blocked_transacts) + " Ready: " + repr(self._transacts)
@@ -157,15 +197,21 @@ class Environment():
     от одной к другой. На границах получает транзакты в push_transacts и отдает в get_transacts.
     Реализует вложенность.
     """
-    def __init__(self):
+    def __init__(self, name = "noname env"):
         self._inner_environments = []
+        self.__name = name
+        self.clock()
 
     def add_inner_environment(self, new_inner_environment):
         self._inner_environments.append(new_inner_environment)
 
     def clock(self):
-        for environment in self._inner_environments:
-            environment.clock()
+        current_time = 0
+        while current_time < EventHorizon.time_limit:
+            current_time += 1
+            EventHorizon.register_callback_in_time(current_time, self.clock_callback, None)
+
+    def clock_callback(self, time, data):
         self.transport_transacts()
 
     def push_transacts(self, transacts):
@@ -213,7 +259,7 @@ class Environment():
 class EnvironmentWithRouter(Environment):
 
     def __init__(self, router_settings):
-        Environment.__init__(self)
+        Environment.__init__(self, "with router")
         #Метка транзакта к типу станции
         self.__router_settings = router_settings
 
