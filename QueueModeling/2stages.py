@@ -36,10 +36,11 @@ class GeneratorStation(Station, OutputForStation):
 
 
 class OrdinaryStation(Station, InputOutputForStation):
-    def __init__(self, name, delay):
+    def __init__(self, name):
         Station.__init__(self, name)
         InputOutputForStation.__init__(self)
-        self.__queue = DelayedQueue(None, delay)
+        self.__queue = DelayedQueue(2, 15)
+        self.clock()
 
     def push_transact(self, transact):
         self.__queue.push_transact(transact)

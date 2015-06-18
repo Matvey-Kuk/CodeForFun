@@ -10,8 +10,10 @@ use std::io::Write;
 use scirust::api::*;
 use scirust::linalg::linear_system::*;
 
+
 fn gauss(matrix:&mut Vec<Vec<f64>>) -> Vec<f64> {
     for iteration_number in 0..(matrix[0].len() - 1) {
+        // println!("{}", iteration_number / (matrix[0].len() - 1);
        //Achieving zero column by row swapping
        let min_x = iteration_number;
        let max_y = matrix[0].len() - iteration_number;
@@ -58,6 +60,7 @@ fn gauss(matrix:&mut Vec<Vec<f64>>) -> Vec<f64> {
 }
 
 fn gauss2(matrix:&mut Vec<Vec<f64>>) -> Vec<f64> {
+
     let mut result:Vec<f64> = Vec::new();
     let mut linear_matrix:Vec<f64> = Vec::new();
     let mut linear_matrix_right:Vec<f64> = Vec::new();
@@ -137,8 +140,8 @@ impl Plate {
         Plate {
 			cells: result,
             time: 0.0,
-            heat_coefficient_x: 1.0,
-            heat_coefficient_y: 1.0
+            heat_coefficient_x: 10.0,
+            heat_coefficient_y: 10.0
 		}
     }
 
@@ -161,15 +164,20 @@ impl Plate {
     fn apply_border_conditions(&mut self) {
         let y_size = self.cells[0].len();
         let x_size = self.cells.len();
-        for x in 0..self.cells.len(){
-            self.cells[x][0].temperature = self.cells[x][1].temperature;
-            self.cells[x][y_size - 1].temperature = self.cells[x][y_size - 2].temperature;
+
+        {
+            for x in 0..self.cells.len(){
+                self.cells[x][0].temperature = 800.0;
+                self.cells[x][y_size - 1].temperature = 800.0;
+            }
+
+            for y in 0..y_size {
+                self.cells[0][y].temperature = self.cells[1][y].temperature;
+                self.cells[x_size - 1][y].temperature = 800.0;
+            }
         }
 
-        for y in 0..y_size {
-            self.cells[0][y].temperature = self.cells[1][y].temperature;
-            self.cells[x_size - 1][y].temperature = 800.0;
-        }
+        // self.cells[x_size / 2 as usize][y_size / 2 as usize].temperature = 0.0;
     }
 
     fn go_to_time(&mut self, to_time:f64, time_delta:f64) {
@@ -179,7 +187,7 @@ impl Plate {
 
             self.apply_border_conditions();
             let old_plate = self.clone();
-            let mut _linear_eq_system = self.get_linear_eq_system(old_plate, 1.0);
+            let mut _linear_eq_system = self.get_linear_eq_system(old_plate, time_delta);
 
             // print_matrix(&_linear_eq_system);
 
@@ -194,6 +202,20 @@ impl Plate {
             //
             println!("{}", start.to(PreciseTime::now()));
             self.time += time_delta;
+
+
+            let x_coord = self.cells.len() / 2 as usize;
+            let y_coord = self.cells[0].len() / 2 as usize - 1;
+
+            println!(
+                "{} {} {} {} {}",
+                 self.cells[x_coord - 1][y_coord].temperature,
+                 self.cells[x_coord + 1][y_coord].temperature,
+                 self.cells[x_coord][y_coord - 1].temperature,
+                 self.cells[x_coord][y_coord + 1].temperature,
+                 self.cells[x_coord][y_coord].temperature
+                 );
+
         }
 
     }
@@ -278,9 +300,9 @@ impl Clone for Plate {
 }
 
 fn main() {
-    let mut plate:Plate = Plate::new(50, 50, 5, 5);
+    let mut plate:Plate = Plate::new(30, 30, 5, 5);
     plate.apply_start_conditions();
-    plate.go_to_time(5.0, 1.0);
+    plate.go_to_time(10.0, 5.0);
     plate.paint();
 }
 
