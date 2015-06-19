@@ -165,7 +165,7 @@ fn main() {
     let mut matrix = Vec::new();
     let start_x = 1.0;
     let end_x = 32.0;
-    let amount_of_elements = 4000;
+    let amount_of_elements = 40;
     let l:f64 = (end_x - start_x) / amount_of_elements as f64;
 
     let form_matrix_size = 2;
