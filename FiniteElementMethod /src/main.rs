@@ -150,12 +150,22 @@ fn solve_analytical(start_x:f64, l:f64, amount_of_elements: usize) -> Vec<f64> {
 }
 
 fn main() {
-    // File::create("foo.txt");
+
+    {
+        match File::create("foo.txt") {
+            Ok(_) => {
+            }
+            Err(e) => {
+                println!("Error writing file {}", e);
+            }
+        }
+    }
+
 
     let mut matrix = Vec::new();
     let start_x = 1.0;
     let end_x = 32.0;
-    let amount_of_elements = 1000;
+    let amount_of_elements = 4000;
     let l:f64 = (end_x - start_x) / amount_of_elements as f64;
 
     let form_matrix_size = 2;
@@ -223,7 +233,7 @@ fn main() {
 
     print_matrix(&matrix);
 
-    let result = gauss2(&mut matrix);
+    let result = gauss(&mut matrix);
     let analytical_result = solve_analytical(start_x, l, amount_of_elements);
     let mut max_error = 0.0;
 
@@ -235,6 +245,21 @@ fn main() {
     }
 
     println!("Max error: {}", max_error);
+
+    let mut x_axis = Vec::new();
+
+    for i in 0..result.len() {
+        x_axis.push(i as f64 * l + start_x);
+    }
+
+    let mut fg = Figure::new();
+
+    fg.clear_axes();
+	fg.axes2d()
+	.lines(x_axis.iter(), result.iter(), &[Caption("FEM"), LineWidth(0.5), Color("black")])
+    .lines(x_axis.iter(), analytical_result.iter(), &[Caption("Analytical"), LineWidth(0.5), Color("blue")]);
+
+	fg.show();
 }
 
 #[cfg(test)]
