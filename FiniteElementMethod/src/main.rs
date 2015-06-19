@@ -149,8 +149,140 @@ fn solve_analytical(start_x:f64, l:f64, amount_of_elements: usize) -> Vec<f64> {
     result
 }
 
-fn main() {
+struct FEM {
+    start_x:f64,
+    end_x:f64,
+    amount_of_elements:usize,
+    right_matrix:Vec<f64>,
+    form_matrix:Vec<Vec<f64>>,
+    matrix:Vec<Vec<f64>>
+}
 
+impl FEM {
+    fn new_linear_form_function (start_x:f64, end_x:f64, amount_of_elements:usize) -> FEM {
+        let l:f64 = (end_x - start_x) / amount_of_elements as f64;
+
+        let form_matrix_size = 2;
+
+        let mut form_matrix = Vec::new();
+        for x in 0..form_matrix_size {
+            form_matrix.push(Vec::new());
+            for _ in 0..form_matrix_size {
+                form_matrix[x].push(0.0);
+            }
+        }
+
+        form_matrix[0][0] = (4.0 / l) - (11.0 * l / 6.0);
+        form_matrix[1][0] = - (4.0 / l) - (11.0 * l / 3.0);
+        form_matrix[0][1] = - (4.0 / l) - (11.0 * l / 3.0);
+        form_matrix[1][1] = (4.0 / l) - (11.0 * l / 6.0);
+
+        let mut right_matrix = Vec::new();
+        for _ in 0..form_matrix_size {
+            right_matrix.push(0.0);
+        }
+
+        right_matrix[0] = -7.0 * l / 2.0;
+        right_matrix[1] = -7.0 * l / 2.0;
+
+        FEM {
+            start_x:start_x,
+            end_x:end_x,
+            amount_of_elements:amount_of_elements,
+            matrix:FEM::generate_matrix(&form_matrix, &right_matrix, amount_of_elements),
+            right_matrix:right_matrix,
+            form_matrix:form_matrix,
+        }
+    }
+
+    fn generate_matrix(form_matrix:&Vec<Vec<f64>>, right_matrix:&Vec<f64>, amount_of_elements:usize) -> Vec<Vec<f64>> {
+        let mut matrix = Vec::new();
+
+        let matrix_size:usize = (form_matrix.len() - 1) * (amount_of_elements - 1) + form_matrix.len();
+        let form_matrix_size = form_matrix.len();
+
+        for x in 0..matrix_size + 1 {
+            matrix.push(Vec::new());
+            for _ in 0..matrix_size {
+                matrix[x].push(0.0);
+            }
+        }
+
+        print_matrix(&matrix);
+
+        for i in 0..amount_of_elements {
+            for x in 0..form_matrix_size {
+                for y in 0..form_matrix_size {
+                    matrix[i * (form_matrix_size - 1) + x][matrix_size - i * (form_matrix_size - 1) - form_matrix_size + y] += form_matrix[x][y];
+                }
+            }
+        }
+
+        print_matrix(&matrix);
+
+
+        for i in 0..amount_of_elements {
+            for y in 0..form_matrix_size {
+                matrix[matrix_size][matrix_size - i * (form_matrix_size - 1) - form_matrix_size + y] += right_matrix[y];
+            }
+        }
+
+        print_matrix(&matrix);
+
+        matrix
+    }
+
+    fn apply_boundary_conditions(&mut self) ->  &mut FEM {
+        let matrix_size:usize = (self.form_matrix.len() - 1) * (self.amount_of_elements - 1) + self.form_matrix.len();
+
+        for x in 0..matrix_size + 1 {
+            self.matrix[x][matrix_size - 1] = 0.0;
+        }
+
+        self.matrix[0][matrix_size - 1] = 1.0;
+        self.matrix[matrix_size][matrix_size - 1] = -10.0;
+
+
+        self.matrix[matrix_size][0] -= 20.0;
+
+        print_matrix(&self.matrix);
+        self
+    }
+
+    fn solve(&mut self) {
+        let l:f64 = (self.end_x - self.start_x) / self.amount_of_elements as f64;
+
+        let result = gauss(&mut self.matrix);
+        let analytical_result = solve_analytical(self.start_x, l, self.amount_of_elements);
+        let mut max_error = 0.0;
+
+        for i in 0..result.len() {
+            if (result[i] - analytical_result[i] as f64).abs() > max_error {
+                max_error = (result[i] - analytical_result[i] as f64).abs();
+            }
+            println!("{} \t {} \t {}",i as f64 * l + self.start_x, result[i], analytical_result[i]);
+        }
+
+        println!("Max error: {}", max_error);
+
+        let mut x_axis = Vec::new();
+
+        for i in 0..result.len() {
+            x_axis.push(i as f64 * l + self.start_x);
+        }
+
+        let mut fg = Figure::new();
+
+        fg.clear_axes();
+        fg.axes2d()
+        .lines(x_axis.iter(), result.iter(), &[Caption("FEM"), LineWidth(0.5), Color("black")])
+        .lines(x_axis.iter(), analytical_result.iter(), &[Caption("Analytical"), LineWidth(0.5), Color("blue")]);
+
+        fg.show();
+    }
+}
+
+fn main() {
     {
         match File::create("foo.txt") {
             Ok(_) => {
@@ -159,107 +291,9 @@ fn main() {
                 println!("Error writing file {}", e);
             }
         }
+
+        FEM::new_linear_form_function(1.0, 32.0, 100).apply_boundary_conditions().solve();
     }
-
-
-    let mut matrix = Vec::new();
-    let start_x = 1.0;
-    let end_x = 32.0;
-    let amount_of_elements = 40;
-    let l:f64 = (end_x - start_x) / amount_of_elements as f64;
-
-    let form_matrix_size = 2;
-
-    let mut form_matrix = Vec::new();
-    for x in 0..form_matrix_size {
-        form_matrix.push(Vec::new());
-        for _ in 0..form_matrix_size {
-            form_matrix[x].push(0.0);
-        }
-    }
-
-    form_matrix[0][0] = (4.0 / l) - (11.0 * l / 6.0);
-    form_matrix[1][0] = - (4.0 / l) - (11.0 * l / 3.0);
-    form_matrix[0][1] = - (4.0 / l) - (11.0 * l / 3.0);
-    form_matrix[1][1] = (4.0 / l) - (11.0 * l / 6.0);
-
-    let matrix_size:usize = (form_matrix_size - 1) * (amount_of_elements - 1) + form_matrix_size;
-
-    for x in 0..matrix_size + 1 {
-        matrix.push(Vec::new());
-        for _ in 0..matrix_size {
-            matrix[x].push(0.0);
-        }
-    }
-
-    print_matrix(&matrix);
-
-    for i in 0..amount_of_elements {
-        for x in 0..form_matrix_size {
-            for y in 0..form_matrix_size {
-                matrix[i * (form_matrix_size - 1) + x][matrix_size - i * (form_matrix_size - 1) - form_matrix_size + y] += form_matrix[x][y];
-            }
-        }
-    }
-
-    print_matrix(&matrix);
-
-
-    let mut right_matrix = Vec::new();
-    for _ in 0..form_matrix_size {
-        right_matrix.push(0.0);
-    }
-
-    right_matrix[0] = -7.0 * l / 2.0;
-    right_matrix[1] = -7.0 * l / 2.0;
-
-    for i in 0..amount_of_elements {
-        for y in 0..form_matrix_size {
-            matrix[matrix_size][matrix_size - i * (form_matrix_size - 1) - form_matrix_size + y] += right_matrix[y];
-        }
-    }
-
-    print_matrix(&matrix);
-
-    for x in 0..matrix_size + 1 {
-        matrix[x][matrix_size - 1] = 0.0;
-    }
-
-    matrix[0][matrix_size - 1] = 1.0;
-    matrix[matrix_size][matrix_size - 1] = -10.0;
-
-
-    matrix[matrix_size][0] -= 20.0;
-
-    print_matrix(&matrix);
-
-    let result = gauss(&mut matrix);
-    let analytical_result = solve_analytical(start_x, l, amount_of_elements);
-    let mut max_error = 0.0;
-
-    for i in 0..result.len() {
-        if (result[i] - analytical_result[i] as f64).abs() > max_error {
-            max_error = (result[i] - analytical_result[i] as f64).abs();
-        }
-        println!("{} \t {} \t {}",i as f64 * l + start_x, result[i], analytical_result[i]);
-    }
-
-    println!("Max error: {}", max_error);
-
-    let mut x_axis = Vec::new();
-
-    for i in 0..result.len() {
-        x_axis.push(i as f64 * l + start_x);
-    }
-
-    let mut fg = Figure::new();
-
-    fg.clear_axes();
-	fg.axes2d()
-	.lines(x_axis.iter(), result.iter(), &[Caption("FEM"), LineWidth(0.5), Color("black")])
-    .lines(x_axis.iter(), analytical_result.iter(), &[Caption("Analytical"), LineWidth(0.5), Color("blue")]);
-
-	fg.show();
 }
 
 #[cfg(test)]
