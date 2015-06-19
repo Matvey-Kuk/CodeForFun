@@ -195,6 +195,59 @@ impl FEM {
         }
     }
 
+    fn new_cube_form_function (start_x:f64, end_x:f64, amount_of_elements:usize) -> FEM {
+        let l:f64 = (end_x - start_x) / amount_of_elements as f64;
+
+        let form_matrix_size = 4;
+
+        let mut form_matrix = Vec::new();
+        for x in 0..form_matrix_size {
+            form_matrix.push(Vec::new());
+            for _ in 0..form_matrix_size {
+                form_matrix[x].push(0.0);
+            }
+        }
+
+        form_matrix[0][0] = 4.0 * 13.0 / (40.0 * l) - 11.0 * 19.0 * l / 1680.0;
+        form_matrix[1][0] = 4.0 * -27.0 / (20.0 * l) - 11.0 * -3.0 * l / 140.0;
+        form_matrix[2][0] = 4.0 * 189.0 / (40.0 * l) - 11.0 * 33.0 * l / 560.0;
+        form_matrix[3][0] = 4.0 * -37.0 / (10.0 * l) - 11.0 * 8.0 * l / 105.0;
+
+        form_matrix[0][1] = 4.0 * -27.0 / (20.0 * l) - 11.0 * -3.0 * l / 140.0;
+        form_matrix[1][1] = 4.0 * 279.0 / (40.0 * l) - 11.0 * -27.0 * l / 560.0;
+        form_matrix[2][1] = 4.0 * -54.0 / (5.0 * l) - 11.0 * 27.0 * l / 70.0;
+        form_matrix[3][1] = 4.0 * 189.0 / (40.0 * l) - 11.0 * 33.0 * l / 560.0;
+
+        form_matrix[0][2] = 4.0 * 189.0 / (40.0 * l) - 11.0 * 33.0 * l / 560.0;
+        form_matrix[1][2] = 4.0 * -54.0 / (5.0 * l) - 11.0 * 27.0 * l / 70.0;
+        form_matrix[2][2] = 4.0 * 279.0 / (40.0 * l) - 11.0 * -27.0 * l / 560.0;
+        form_matrix[3][2] = 4.0 * -27.0 / (20.0 * l) - 11.0 * -3.0 * l / 140.0;
+
+        form_matrix[0][3] = 4.0 * -37.0 / (10.0 * l) - 11.0 * 8.0 * l / 105.0;
+        form_matrix[1][3] = 4.0 * 189.0 / (40.0 * l) - 11.0 * 33.0 * l / 560.0;
+        form_matrix[2][3] = 4.0 * -27.0 / (20.0 * l) - 11.0 * -3.0 * l / 140.0;
+        form_matrix[3][3] = 4.0 * 13.0 / (40.0 * l) - 11.0 * 19.0 * l / 1680.0;
+
+        let mut right_matrix = Vec::new();
+        for _ in 0..form_matrix_size {
+            right_matrix.push(0.0);
+        }
+
+        right_matrix[0] = -7.0 * l / 8.0;
+        right_matrix[1] = -7.0 * 3.0 * l / 8.0;
+        right_matrix[2] = -7.0 * 3.0 * l / 8.0;
+        right_matrix[3] = -7.0 * l / 8.0;
+
+        FEM {
+            start_x:start_x,
+            end_x:end_x,
+            amount_of_elements:amount_of_elements,
+            matrix:FEM::generate_matrix(&form_matrix, &right_matrix, amount_of_elements),
+            right_matrix:right_matrix,
+            form_matrix:form_matrix,
+        }
+    }
+
     fn generate_matrix(form_matrix:&Vec<Vec<f64>>, right_matrix:&Vec<f64>, amount_of_elements:usize) -> Vec<Vec<f64>> {
         let mut matrix = Vec::new();
 
@@ -242,7 +295,6 @@ impl FEM {
         self.matrix[0][matrix_size - 1] = 1.0;
         self.matrix[matrix_size][matrix_size - 1] = -10.0;
 
-
         self.matrix[matrix_size][0] -= 20.0;
 
         print_matrix(&self.matrix);
@@ -256,13 +308,16 @@ impl FEM {
         let analytical_result = solve_analytical(self.start_x, l, self.amount_of_elements);
         let mut max_error = 0.0;
 
-        for i in 0..result.len() {
-            if (result[i] - analytical_result[i] as f64).abs() > max_error {
-                max_error = (result[i] - analytical_result[i] as f64).abs();
-            }
-            println!("{} \t {} \t {}",i as f64 * l + self.start_x, result[i], analytical_result[i]);
-        }
+        println!("{} {}", result.len(), analytical_result.len());
 
+        let mut powered_result = Vec::new();
+        for i in 0..analytical_result.len() {
+            if (result[i*(self.form_matrix.len() - 1)] - analytical_result[i] as f64).abs() > max_error {
+                max_error = (result[i*(self.form_matrix.len() - 1)] - analytical_result[i] as f64).abs();
+            }
+            println!("{} \t {} \t {}",i as f64 * l + self.start_x, result[i*(self.form_matrix.len() - 1)], analytical_result[i]);
+            powered_result.push(result[i*(self.form_matrix.len() - 1)]);
+        }
         println!("Max error: {}", max_error);
 
         let mut x_axis = Vec::new();
@@ -275,7 +330,7 @@ impl FEM {
 
         fg.clear_axes();
         fg.axes2d()
-        .lines(x_axis.iter(), result.iter(), &[Caption("FEM"), LineWidth(0.5), Color("black")])
+        .lines(x_axis.iter(), powered_result.iter(), &[Caption("FEM"), LineWidth(0.5), Color("black")])
         .lines(x_axis.iter(), analytical_result.iter(), &[Caption("Analytical"), LineWidth(0.5), Color("blue")]);
 
         fg.show();
@@ -292,7 +347,9 @@ fn main() {
             }
         }
 
-        FEM::new_linear_form_function(1.0, 32.0, 100).apply_boundary_conditions().solve();
+        FEM::new_linear_form_function(1.0, 32.0, 40)
+        .apply_boundary_conditions()
+        .solve();
     }
 }
 
