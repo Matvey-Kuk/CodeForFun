@@ -155,11 +155,13 @@ struct FEM {
     amount_of_elements:usize,
     right_matrix:Vec<f64>,
     form_matrix:Vec<Vec<f64>>,
-    matrix:Vec<Vec<f64>>
+    matrix:Vec<Vec<f64>>,
+    long_element_number:usize,
+    long_koefficient:f64
 }
 
 impl FEM {
-    fn new_linear_form_function (start_x:f64, end_x:f64, amount_of_elements:usize) -> FEM {
+    fn new_linear_form_function (start_x:f64, end_x:f64, amount_of_elements:usize, long_element_number:usize, long_koefficient:f64) -> FEM {
         let l:f64 = (end_x - start_x) / amount_of_elements as f64;
 
         let form_matrix_size = 2;
@@ -189,13 +191,15 @@ impl FEM {
             start_x:start_x,
             end_x:end_x,
             amount_of_elements:amount_of_elements,
-            matrix:FEM::generate_matrix(&form_matrix, &right_matrix, amount_of_elements),
+            matrix:FEM::generate_matrix(&form_matrix, &right_matrix, amount_of_elements, long_element_number, long_koefficient),
             right_matrix:right_matrix,
             form_matrix:form_matrix,
+            long_element_number:long_element_number,
+            long_koefficient:long_koefficient
         }
     }
 
-    fn new_cube_form_function (start_x:f64, end_x:f64, amount_of_elements:usize) -> FEM {
+    fn new_cube_form_function (start_x:f64, end_x:f64, amount_of_elements:usize, long_element_number:usize, long_koefficient:f64) -> FEM {
         let l:f64 = (end_x - start_x) / amount_of_elements as f64;
 
         let form_matrix_size = 4;
@@ -242,13 +246,15 @@ impl FEM {
             start_x:start_x,
             end_x:end_x,
             amount_of_elements:amount_of_elements,
-            matrix:FEM::generate_matrix(&form_matrix, &right_matrix, amount_of_elements),
+            matrix:FEM::generate_matrix(&form_matrix, &right_matrix, amount_of_elements, long_element_number, long_koefficient),
             right_matrix:right_matrix,
             form_matrix:form_matrix,
+            long_element_number:long_element_number,
+            long_koefficient:long_koefficient
         }
     }
 
-    fn generate_matrix(form_matrix:&Vec<Vec<f64>>, right_matrix:&Vec<f64>, amount_of_elements:usize) -> Vec<Vec<f64>> {
+    fn generate_matrix(form_matrix:&Vec<Vec<f64>>, right_matrix:&Vec<f64>, amount_of_elements:usize, long_element_number:usize, long_koefficient:f64) -> Vec<Vec<f64>> {
         let mut matrix = Vec::new();
 
         let matrix_size:usize = (form_matrix.len() - 1) * (amount_of_elements - 1) + form_matrix.len();
@@ -263,10 +269,18 @@ impl FEM {
 
         print_matrix(&matrix);
 
+        let little_koefficient = (1.0 / (amount_of_elements as f64 - 1.0 + long_koefficient)) / (1.0 / amount_of_elements as f64);
+
         for i in 0..amount_of_elements {
+            let mut koefficient = 0.0;
+            if i == long_element_number {
+                koefficient = long_koefficient;
+            } else {
+                koefficient = little_koefficient;
+            }
             for x in 0..form_matrix_size {
                 for y in 0..form_matrix_size {
-                    matrix[i * (form_matrix_size - 1) + x][matrix_size - i * (form_matrix_size - 1) - form_matrix_size + y] += form_matrix[x][y];
+                    matrix[i * (form_matrix_size - 1) + x][matrix_size - i * (form_matrix_size - 1) - form_matrix_size + y] += form_matrix[x][y] / koefficient;
                 }
             }
         }
@@ -310,6 +324,32 @@ impl FEM {
 
         println!("{} {}", result.len(), analytical_result.len());
 
+        let little_koefficient = (1.0 / (self.amount_of_elements as f64 - 1.0 + self.long_koefficient)) / (1.0 / self.amount_of_elements as f64);
+
+        // println!("!!!!{}", self.amount_of_elements);
+        // println!("!!!!{}", l);
+        // println!("!!!!{}", little_koefficient);
+        // println!("!!!!{}", self.long_koefficient);
+        // println!("!!!!---{}", l * (self.amount_of_elements as f64));
+        // println!("!!!!---{}", little_koefficient * (self.amount_of_elements as f64 - 1.0) * l + self.long_koefficient * l * little_koefficient);
+
+        let mut x_axis = Vec::new();
+
+        for i in 0..result.len() {
+            if i >= self.long_element_number {
+                println!("!!!!---{}", i);
+                x_axis.push(i as f64 * l * little_koefficient + self.start_x + l * self.long_koefficient);
+            } else {
+                x_axis.push(i as f64 * l * little_koefficient + self.start_x);
+            }
+        }
+
+        let mut x_axis_analitical = Vec::new();
+
+        for i in 0..result.len() {
+            x_axis_analitical.push(i as f64 * l + self.start_x);
+        }
+
         let mut powered_result = Vec::new();
         for i in 0..analytical_result.len() {
             if (result[i*(self.form_matrix.len() - 1)] - analytical_result[i] as f64).abs() > max_error {
@@ -320,18 +360,12 @@ impl FEM {
         }
         println!("Max error: {}", max_error);
 
-        let mut x_axis = Vec::new();
-
-        for i in 0..result.len() {
-            x_axis.push(i as f64 * l + self.start_x);
-        }
-
         let mut fg = Figure::new();
 
         fg.clear_axes();
         fg.axes2d()
         .lines(x_axis.iter(), powered_result.iter(), &[Caption("FEM"), LineWidth(0.5), Color("black")])
-        .lines(x_axis.iter(), analytical_result.iter(), &[Caption("Analytical"), LineWidth(0.5), Color("blue")]);
+        .lines(x_axis_analitical.iter(), analytical_result.iter(), &[Caption("Analytical"), LineWidth(0.5), Color("blue")]);
 
         fg.show();
     }
@@ -347,7 +381,7 @@ fn main() {
             }
         }
 
-        FEM::new_linear_form_function(1.0, 32.0, 40)
+        FEM::new_linear_form_function(1.0, 32.0, 20, 10, 2.0)
         .apply_boundary_conditions()
         .solve();
     }
